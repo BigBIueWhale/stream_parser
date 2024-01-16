@@ -9,8 +9,8 @@ CRC32_State create_hash_engine() {
 }
 
 // CRC-32/ISO-HDLC (IEEE)
-void crc32_update(CRC32_State *state, const uint8_t *data, size_t length) {
-    for (size_t i = 0; i < length; ++i) {
+void crc32_update(CRC32_State *state, const uint8_t *data, int64_t length) {
+    for (int64_t i = 0; i < length; ++i) {
         state->crc ^= data[i];
         for (uint8_t j = 0; j < 8; j++) {
             if (state->crc & 1) {
