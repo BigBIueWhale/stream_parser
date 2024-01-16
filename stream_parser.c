@@ -177,8 +177,8 @@ size_t push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error) {
         case STATE_CHECKSUM: {
             parser->buffer[parser->buffer_index++] = byte;
             if (parser->buffer_index == parser->packet_length - 2) { // Reached end of checksum, 2 bytes left for trailer
-                uint32_t calculated_checksum = crc32(parser->buffer, parser->packet_length - 6); // Calculate checksum excluding the checksum and trailer bytes
-                uint32_t received_checksum = ((uint32_t)parser->buffer[parser->packet_length - 6]) |
+                const uint32_t calculated_checksum = crc32(parser->buffer + (parser->packet_length - 6), 4); // Calculate checksum excluding the checksum and trailer bytes
+                const uint32_t received_checksum = ((uint32_t)parser->buffer[parser->packet_length - 6]) |
                                              ((uint32_t)parser->buffer[parser->packet_length - 5] << 8) |
                                              ((uint32_t)parser->buffer[parser->packet_length - 4] << 16) |
                                              ((uint32_t)parser->buffer[parser->packet_length - 3] << 24);
