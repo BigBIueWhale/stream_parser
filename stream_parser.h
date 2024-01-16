@@ -20,7 +20,7 @@ typedef enum {
 typedef void (*StreamParserErrorCallback)(StreamParserError error, const char *message, void *callback_data);
 
 // Function to open and initialize the parser.
-extern StreamParser *open_stream_parser(size_t buffer_size);
+extern StreamParser *open_stream_parser();
 
 // Function to close and free the parser.
 extern void close_stream_parser(StreamParser *parser);

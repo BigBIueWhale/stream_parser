@@ -21,7 +21,7 @@ The ICD format is a structured way of encoding data packets. It consists of the 
 
 - **Body**: Starting from index 7, the body contains the raw bytes of the packet's content. The length of the body varies depending on the packet.
 
-- **Checksum**: A CRC32 checksum is calculated for the packet body. This 4-byte checksum is appended immediately after the body. It's assumed that a function for calculating the CRC32 checksum is available.
+- **Checksum**: A CRC32 checksum is calculated for the packet body. This 4-byte checksum is appended immediately after the body.
 
 - **Trailer**: The packet ends with a trailer, indicated by `"*", "/"`.
 
@@ -31,4 +31,4 @@ The ICD format is a structured way of encoding data packets. It consists of the 
 - The CRC32 checksum helps in verifying the integrity of the packet's data.
 
 ## Compiling
-The code is valid POSIX-compliant C11
+Compile with `make` command on a GNU / Linux system.

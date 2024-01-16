@@ -20,7 +20,7 @@ typedef enum {
 // Define the struct StreamParser
 struct StreamParser {
     uint8_t *buffer;
-    size_t buffer_index;
+    int64_t buffer_index;
     ParserState state;
     uint16_t packet_length;
     StreamParserErrorCallback error_callback;
@@ -30,14 +30,14 @@ struct StreamParser {
 };
 
 static void append_to_error_context(StreamParser *parser, const char *const string_to_append) {
-    const size_t length = strlen(parser->error_context);
+    const int64_t length = strlen(parser->error_context);
     if (length >= ERROR_CONTEXT_SIZE) {
         return; // No room to append error message
     }
     strncat(parser->error_context + length, string_to_append, ERROR_CONTEXT_SIZE - length - 1);
 }
 
-static void clear_error_context(StreamParser *parser, const char *const string_to_append) {
+static void clear_error_context(StreamParser *parser) {
     parser->error_context[0] = '\0';
 }
 
@@ -51,15 +51,15 @@ static void string_context(StreamParser *parser) {
 
     append_to_error_context(parser, parser->general_use_buffer);
 
-    for (size_t i = 0; i < parser->buffer_index && i < DATA_BUFFER_SIZE; ++i) {
+    for (int64_t i = 0; i < parser->buffer_index && i < DATA_BUFFER_SIZE; ++i) {
         parser->general_use_buffer[0] = '\0';
-        snprintf(general_use_buffer, GENERAL_USE_BUFFER_SIZE, "%02X ", parser->buffer[i]);
+        snprintf(parser->general_use_buffer, GENERAL_USE_BUFFER_SIZE, "%02X ", parser->buffer[i]);
         append_to_error_context(parser, parser->general_use_buffer);
     }
 }
 
 // CRC32 function prototype (assuming it's provided)
-uint32_t crc32(const uint8_t *data, size_t len);
+uint32_t crc32(const uint8_t *data, int64_t len);
 
 StreamParser *open_stream_parser() {
     StreamParser *parser = malloc(sizeof(StreamParser));
@@ -108,12 +108,12 @@ size_t push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error) {
     if (!parser || !error) {
         if (error) *error = STREAM_PARSER_INVALID_ARG;
         if (parser->error_callback) {
-            clear_error_context();
+            clear_error_context(parser);
             parser->general_use_buffer[0] = '\0';
-            snprintf(parser->general_use_buffer, GENERAL_USE_BUFFER_SIZE, "STREAM_PARSER_INVALID_ARG: parser: %p, error: %p, byte: %03o\n", parser, error, byte);
+            snprintf(parser->general_use_buffer, GENERAL_USE_BUFFER_SIZE, "STREAM_PARSER_INVALID_ARG: parser: %p, error: %p, byte: %03o\n", (void*)parser, (void*)error, byte);
             append_to_error_context(parser, parser->general_use_buffer);
             string_context(parser);
-            parser->error_callback(STREAM_PARSER_INVALID_ARG, parser->error_context, parser->callback_data)
+            parser->error_callback(STREAM_PARSER_INVALID_ARG, parser->error_context, parser->callback_data);
         }
 
         return 0;

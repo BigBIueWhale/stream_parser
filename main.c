@@ -6,10 +6,12 @@
 #include <termios.h>
 #include <signal.h>
 #include <string.h>
+#include <errno.h>
 
 volatile sig_atomic_t keep_running = 1;
 
 void int_handler(int dummy) {
+    (void)dummy;
     keep_running = 0;
 }
 
