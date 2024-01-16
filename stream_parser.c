@@ -110,7 +110,7 @@ size_t push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error) {
         if (parser->error_callback) {
             clear_error_context();
             parser->general_use_buffer[0] = '\0';
-            snprintf(parser->general_use_buffer, GENERAL_USE_BUFFER_SIZE, "STREAM_PARSER_INVALID_ARG: parser: %p, error: %p, byte: %03o", parser, error, byte);
+            snprintf(parser->general_use_buffer, GENERAL_USE_BUFFER_SIZE, "STREAM_PARSER_INVALID_ARG: parser: %p, error: %p, byte: %03o\n", parser, error, byte);
             append_to_error_context(parser, parser->general_use_buffer);
             string_context(parser);
             parser->error_callback(STREAM_PARSER_INVALID_ARG, parser->error_context, parser->callback_data)
@@ -121,16 +121,124 @@ size_t push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error) {
 
     // Handle states
     switch (parser->state) {
-        // TODO: Implement this according to this ICD:
-        /*
-The ICD:
-Header: "/", "*"
-Length bytes (index 2, 3): little endian uint16 of the entire packet length including header and trailer.
-Packet type (indexes 4, 5, 6): 3 bytes
-Body (index 4 until checksum): raw bytes
-Checksum: CRC32 4 bytes after body (assume there's already a function available for calculating checksum).
-Trailer: "*", "/"
-        */
+        case STATE_FIND_HEADER:
+            if (parser->buffer_index == 0 && byte == '/') {
+                parser->buffer[parser->buffer_index++] = byte;
+            } else if (parser->buffer_index == 1 && byte == '*') {
+                parser->buffer[parser->buffer_index++] = byte;
+                parser->state = STATE_LENGTH;
+            } else {
+                *error = STREAM_PARSER_HEADER_NOT_FOUND_YET;
+                if (parser->error_callback) {
+                    clear_error_context(parser);
+                    snprintf(parser->general_use_buffer, GENERAL_USE_BUFFER_SIZE, "STREAM_PARSER_HEADER_NOT_FOUND_YET: Expected '/' and '*', received: %03o\n", byte);
+                    append_to_error_context(parser, parser->general_use_buffer);
+                    string_context(parser);
+                    parser->error_callback(STREAM_PARSER_HEADER_NOT_FOUND_YET, parser->error_context, parser->callback_data);
+                }
+                parser->buffer_index = 0; // Reset buffer index to start looking for header again
+            }
+            break;
+        case STATE_LENGTH:
+            parser->buffer[parser->buffer_index++] = byte;
+            if (parser->buffer_index == 4) { // Header + 2 length bytes
+                parser->packet_length = ((uint32_t)parser->buffer[2]) | (((uint32_t)(parser->buffer[3])) << 8);
+                if (parser->packet_length < 13 || parser->packet_length > DATA_BUFFER_SIZE) {
+                    *error = STREAM_PARSER_INVALID_PACKET;
+                    if (parser->error_callback) {
+                        clear_error_context(parser);
+                        snprintf(parser->general_use_buffer, GENERAL_USE_BUFFER_SIZE, "STREAM_PARSER_INVALID_PACKET: Invalid packet length: %u\n", parser->packet_length);
+                        append_to_error_context(parser, parser->general_use_buffer);
+                        string_context(parser);
+                        parser->error_callback(STREAM_PARSER_INVALID_PACKET, parser->error_context, parser->callback_data);
+                    }
+                    parser->buffer_index = 0; // Reset buffer index to start looking for header again
+                    parser->state = STATE_FIND_HEADER;
+                } else {
+                    parser->state = STATE_TYPE;
+                }
+            }
+            break;
+        case STATE_TYPE:
+            parser->buffer[parser->buffer_index++] = byte;
+            if (parser->buffer_index == 7) { // Header + 2 length bytes + 3 type bytes
+                // Type bytes are successfully captured. Transition to STATE_BODY.
+                parser->state = STATE_BODY;
+            }
+            break;
+        case STATE_BODY:
+            parser->buffer[parser->buffer_index++] = byte;
+            // Calculate the expected end of the body, taking into account header, length, type, checksum, and trailer bytes
+            if (parser->buffer_index == parser->packet_length - (4 + 2)) { // Subtract 4 bytes for checksum and 2 bytes for trailer
+                // The body is now complete. Transition to STATE_CHECKSUM.
+                parser->state = STATE_CHECKSUM;
+            }
+            break;
+        case STATE_CHECKSUM: {
+            parser->buffer[parser->buffer_index++] = byte;
+            if (parser->buffer_index == parser->packet_length - 2) { // Reached end of checksum, 2 bytes left for trailer
+                uint32_t calculated_checksum = crc32(parser->buffer, parser->packet_length - 6); // Calculate checksum excluding the checksum and trailer bytes
+                uint32_t received_checksum = ((uint32_t)parser->buffer[parser->packet_length - 6]) |
+                                             ((uint32_t)parser->buffer[parser->packet_length - 5] << 8) |
+                                             ((uint32_t)parser->buffer[parser->packet_length - 4] << 16) |
+                                             ((uint32_t)parser->buffer[parser->packet_length - 3] << 24);
+
+                if (calculated_checksum != received_checksum) {
+                    *error = STREAM_PARSER_INVALID_PACKET;
+                    if (parser->error_callback) {
+                        clear_error_context(parser);
+                        snprintf(parser->general_use_buffer, GENERAL_USE_BUFFER_SIZE, "STREAM_PARSER_INVALID_PACKET: Checksum mismatch. Expected: %08X, Received: %08X\n", calculated_checksum, received_checksum);
+                        append_to_error_context(parser, parser->general_use_buffer);
+                        string_context(parser);
+                        parser->error_callback(STREAM_PARSER_INVALID_PACKET, parser->error_context, parser->callback_data);
+                    }
+                    parser->buffer_index = 0;
+                    parser->state = STATE_FIND_HEADER;
+                    return 0;
+                } else {
+                    // Checksum is valid. Transition to STATE_FIND_TRAILER.
+                    parser->state = STATE_FIND_TRAILER;
+                }
+            }
+            break;
+        }
+        case STATE_FIND_TRAILER:
+            parser->buffer[parser->buffer_index++] = byte;
+            if (parser->buffer_index == parser->packet_length - 1 && byte == '*') {
+                // First trailer byte received, wait for the second
+            } else if (parser->buffer_index == parser->packet_length && byte == '/') {
+                // Complete packet received, including trailer
+                parser->buffer_index = 0; // Reset buffer index for the next packet
+                parser->state = STATE_FIND_HEADER; // Reset state to start looking for the next header
+                *error = STREAM_PARSER_OK;
+                return parser->packet_length; // Return the length of the complete packet
+            } else {
+                // Trailer not found or incorrect trailer sequence
+                *error = STREAM_PARSER_INVALID_PACKET;
+                if (parser->error_callback) {
+                    clear_error_context(parser);
+                    snprintf(parser->general_use_buffer, GENERAL_USE_BUFFER_SIZE, "STREAM_PARSER_INVALID_PACKET: Incorrect trailer sequence or incomplete packet\n");
+                    append_to_error_context(parser, parser->general_use_buffer);
+                    string_context(parser);
+                    parser->error_callback(STREAM_PARSER_INVALID_PACKET, parser->error_context, parser->callback_data);
+                }
+                parser->buffer_index = 0; // Reset buffer index to start looking for header again
+                parser->state = STATE_FIND_HEADER; // Reset state to start looking for the next header
+            }
+            break;
+        default:
+            *error = STREAM_PARSER_INTERNAL_ERROR;
+            if (parser->error_callback) {
+                clear_error_context(parser);
+                snprintf(parser->general_use_buffer, GENERAL_USE_BUFFER_SIZE, "STREAM_PARSER_INTERNAL_ERROR: Unknown state\n");
+                append_to_error_context(parser, parser->general_use_buffer);
+                string_context(parser);
+                parser->error_callback(STREAM_PARSER_INVALID_PACKET, parser->error_context, parser->callback_data);
+            }
+            parser->buffer_index = 0; // Reset buffer index to start looking for header again
+            parser->state = STATE_FIND_HEADER; // Reset state to start looking for the next header
+            
+            return 0;
     }
 
     *error = STREAM_PARSER_OK;
