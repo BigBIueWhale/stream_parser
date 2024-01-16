@@ -1,4 +1,5 @@
 #include "stream_parser.h"
+#include "crc32.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -57,9 +58,6 @@ static void string_context(StreamParser *parser) {
         append_to_error_context(parser, parser->general_use_buffer);
     }
 }
-
-// CRC32 function prototype (assuming it's provided)
-uint32_t crc32(const uint8_t *data, int64_t len);
 
 StreamParser *open_stream_parser() {
     StreamParser *parser = malloc(sizeof(StreamParser));
@@ -177,7 +175,12 @@ size_t push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error) {
         case STATE_CHECKSUM: {
             parser->buffer[parser->buffer_index++] = byte;
             if (parser->buffer_index == parser->packet_length - 2) { // Reached end of checksum, 2 bytes left for trailer
-                const uint32_t calculated_checksum = crc32(parser->buffer + (parser->packet_length - 6), 4); // Calculate checksum excluding the checksum and trailer bytes
+                CRC32_State hash_engine = create_hash_engine();
+                // The checksum is of the entire messsage including the header and trailer
+                // except for the hash itself which isn't included in the calculation.
+                crc32_update(&hash_engine, parser->buffer, parser->packet_length - 6); // Everything before checksum
+                crc32_update(&hash_engine, parser->buffer + (parser->packet_length - 2), 2); // Trailer
+                const uint32_t calculated_checksum = crc32_finalize(&hash_engine);
                 const uint32_t received_checksum = ((uint32_t)parser->buffer[parser->packet_length - 6]) |
                                              ((uint32_t)parser->buffer[parser->packet_length - 5] << 8) |
                                              ((uint32_t)parser->buffer[parser->packet_length - 4] << 16) |
