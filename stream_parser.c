@@ -137,10 +137,11 @@ size_t push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error) {
                 parser->buffer_index = 0; // Reset buffer index to start looking for header again
             }
             break;
-        case STATE_LENGTH:
+        case STATE_LENGTH: {
             parser->buffer[parser->buffer_index++] = byte;
             if (parser->buffer_index == 4) { // Header + 2 length bytes
-                parser->packet_length = ((uint32_t)parser->buffer[2]) | (((uint32_t)(parser->buffer[3])) << 8);
+                const int64_t payload_length = ((uint32_t)parser->buffer[2]) | (((uint32_t)(parser->buffer[3])) << 8);
+                parser->packet_length = payload_length + 13; // header + trailer 4 bytes, length 2 bytes, message type 3 bytes, checksum 4 bytes.
                 if (parser->packet_length < 13 || parser->packet_length > DATA_BUFFER_SIZE) {
                     *error = STREAM_PARSER_INVALID_PACKET;
                     if (parser->error_callback) {
@@ -157,6 +158,7 @@ size_t push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error) {
                 }
             }
             break;
+        }
         case STATE_TYPE:
             parser->buffer[parser->buffer_index++] = byte;
             if (parser->buffer_index == 7) { // Header + 2 length bytes + 3 type bytes

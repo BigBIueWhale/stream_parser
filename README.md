@@ -15,7 +15,7 @@ The ICD format is a structured way of encoding data packets. It consists of the 
 
 - **Header**: The packet begins with a header denoted by `"/", "*"`.
   
-- **Length Bytes**: Located at index 2 and 3, this is a little-endian encoded `uint16` value that represents the total length of the packet, including the header and trailer.
+- **Length Bytes**: Located at index 2 and 3, this is a little-endian encoded `uint16` value that represents the length of the payload (only the payload itself, not including headers, trailer, length bytes, message type, and checksum).
 
 - **Packet Type**: This field spans indexes 4, 5, and 6 and is composed of 3 bytes that identify the packet type.
 
