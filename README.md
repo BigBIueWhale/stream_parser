@@ -31,4 +31,4 @@ The ICD format is a structured way of encoding data packets. It consists of the 
 - The CRC32 checksum helps in verifying the integrity of the packet's data.
 
 ## Compiling
-The code is valid C11 but it's not for compiling, it's just a reference implementation to demonstrate good API design.
+The code is valid POSIX-compliant C11
