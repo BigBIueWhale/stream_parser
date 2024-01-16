@@ -102,7 +102,16 @@ void close_stream_parser(StreamParser *parser) {
     }
 }
 
+// header + trailer 4 bytes, length 2 bytes, message type 3 bytes, checksum 4 bytes.
+#define MIN_PACKET_LENGTH 13
+
 size_t push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error) {
+    { // TODO: Remove me later
+        clear_error_context(parser);
+        string_context(parser);
+        parser->error_callback(STREAM_PARSER_OK, parser->error_context, parser->callback_data);
+    }
+
     if (!parser || !error) {
         if (error) *error = STREAM_PARSER_INVALID_ARG;
         if (parser->error_callback) {
@@ -141,8 +150,8 @@ size_t push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error) {
             parser->buffer[parser->buffer_index++] = byte;
             if (parser->buffer_index == 4) { // Header + 2 length bytes
                 const int64_t payload_length = ((uint32_t)parser->buffer[2]) | (((uint32_t)(parser->buffer[3])) << 8);
-                parser->packet_length = payload_length + 13; // header + trailer 4 bytes, length 2 bytes, message type 3 bytes, checksum 4 bytes.
-                if (parser->packet_length < 13 || parser->packet_length > DATA_BUFFER_SIZE) {
+                parser->packet_length = payload_length + MIN_PACKET_LENGTH;
+                if (parser->packet_length < MIN_PACKET_LENGTH || parser->packet_length > DATA_BUFFER_SIZE) {
                     *error = STREAM_PARSER_INVALID_PACKET;
                     if (parser->error_callback) {
                         clear_error_context(parser);
@@ -162,8 +171,14 @@ size_t push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error) {
         case STATE_TYPE:
             parser->buffer[parser->buffer_index++] = byte;
             if (parser->buffer_index == 7) { // Header + 2 length bytes + 3 type bytes
-                // Type bytes are successfully captured. Transition to STATE_BODY.
-                parser->state = STATE_BODY;
+                // Type bytes are successfully captured.
+                if (parser->packet_length <= MIN_PACKET_LENGTH) {
+                    // Stop the body state from stealing one byte in the case
+                    // of a packet that has an empty body.
+                    parser->state = STATE_CHECKSUM;
+                } else {
+                    parser->state = STATE_BODY;
+                }
             }
             break;
         case STATE_BODY:

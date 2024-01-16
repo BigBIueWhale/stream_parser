@@ -18,6 +18,7 @@ void int_handler(int dummy) {
 void error_callback(StreamParserError error, const char *message, void *callback_data) {
     (void)callback_data; // Unused parameter
     printf("Error [%d]: %s\n", error, message);
+    fflush(stdout);
 }
 
 int main() {
@@ -86,6 +87,7 @@ int main() {
             size_t packet_length = push_byte(parser, byte, &error);
             if (packet_length > 0) {
                 printf("Received packet of length %zu\n", packet_length);
+                fflush(stdout);
             }
         } else if (n < 0 && errno != EAGAIN) {
             perror("Error reading from serial port");
