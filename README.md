@@ -28,6 +28,30 @@ The ICD format is a structured way of encoding data packets. It consists of the 
 ## Compiling
 Compile with `make` command on a GNU / Linux system.
 
+This project can be compiled in two modes: Debug and Release.
+
+### Compiling in Debug Mode
+
+To compile the project in Debug mode, use the following commands:
+
+```bash
+make clean
+make debug
+```
+
+This will compile the project with `-g` flag for including debugging information.
+
+### Compiling in Release Mode
+
+To compile the project in Release mode, use the following command:
+
+```bash
+make clean
+make release
+```
+
+This will compile the project with `-O2` optimization flag for better performance, and without debug symbols.
+
 ## Example usage
 After compiling, you can start listening and parsing packets with a USB to serial port hardware device.
 

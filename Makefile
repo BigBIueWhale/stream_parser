@@ -1,9 +1,18 @@
 CC=gcc
 CFLAGS=-std=gnu11 -Wall -Wextra -pedantic
+DFLAGS=-g
+RFLAGS=-O2
 
-.PHONY: all clean
+.PHONY: all clean debug release
 
-all: stream_parser
+# Default to release mode
+all: release
+
+debug: CFLAGS += $(DFLAGS)
+debug: stream_parser
+
+release: CFLAGS += $(RFLAGS)
+release: stream_parser
 
 stream_parser: main.o stream_parser.o crc32.o
 	$(CC) $(CFLAGS) -o stream_parser main.o stream_parser.o crc32.o
