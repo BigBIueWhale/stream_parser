@@ -6,7 +6,7 @@
 
 #define ERROR_CONTEXT_SIZE 4096
 #define GENERAL_USE_BUFFER_SIZE 4096
-#define DATA_BUFFER_SIZE 1024
+#define DATA_BUFFER_SIZE 64 // Max packet size according to our ICD is 49
 
 // Define the internal state of the parser
 typedef enum {
