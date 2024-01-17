@@ -196,7 +196,11 @@ size_t push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error) {
                 // The checksum is of the entire messsage including the header and trailer
                 // except for the hash itself which isn't included in the calculation.
                 crc32_update(&hash_engine, parser->buffer, parser->packet_length - 6); // Everything before checksum
-                crc32_update(&hash_engine, parser->buffer + (parser->packet_length - 2), 2); // Trailer
+                // Need to manually fill in the trailer bytes for this CRC32 calculation
+                // because we haven't collected the trailer bytes yet.
+                // Don't worry- we'll also verify the trailer bytes in the next state.
+                static const uint8_t trailer_bytes[] = { '*', '/' };
+                crc32_update(&hash_engine, trailer_bytes, 2);
                 const uint32_t calculated_checksum = crc32_finalize(&hash_engine);
                 const uint32_t received_checksum = ((uint32_t)parser->buffer[parser->packet_length - 6]) |
                                              ((uint32_t)parser->buffer[parser->packet_length - 5] << 8) |
