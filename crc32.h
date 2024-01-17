@@ -13,4 +13,4 @@ extern CRC32_State crc32_create_engine();
 extern void crc32_update(CRC32_State *state, const uint8_t *data, int64_t length);
 extern uint32_t crc32_finalize(const CRC32_State *state);
 
-#endif
+#endif // CRC32_ENGINE_H

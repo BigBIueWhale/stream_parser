@@ -1,6 +1,10 @@
 #ifndef STREAM_PARSER_H
 #define STREAM_PARSER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -54,5 +58,9 @@ extern void stream_parser_register_error_callback(StreamParser *parser, StreamPa
 // The packet buffer that you'll be called with is not persistent (same buffer reused for next time),
 // and you don't own it.
 extern void stream_parser_register_packet_callback(StreamParser *parser, StreamParserPacketCallback callback, void *packet_callback_data);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // STREAM_PARSER_H
