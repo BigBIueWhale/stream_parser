@@ -1,9 +1,9 @@
 #include "stream_parser.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <unistd.h>
 #include <signal.h>
 #include <string.h>
 #include <errno.h>
@@ -35,10 +35,26 @@ static void packet_callback(const uint8_t *const packet_buffer, int64_t packet_s
     fflush(stdout);
 }
 
-int main() {
-    char port[100] = { 0 };
-    printf("Enter the serial port to listen on (e.g., /dev/ttyS0): ");
-    scanf("%99s", port);
+int main(int argc, char *argv[]) {
+    char *port = NULL;
+
+    // Iterate through command line arguments to find the --port argument
+    for (int i = 1; i < argc - 1; i++) {
+        if (strcmp(argv[i], "--port") == 0) {
+            port = argv[i + 1];
+            break;
+        }
+    }
+
+    // Check if the port argument was provided
+    if (port != NULL) {
+        printf("Listening on serial port: %s\n", port);
+    } else {
+        printf("Error: Please specify the serial port using the --port argument.\n");
+        printf("Usage: program_name --port <port_name>\n");
+        fflush(stdout);
+        return EXIT_FAILURE;
+    }
 
     const int fd = open(port, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (fd < 0) {
@@ -78,9 +94,13 @@ int main() {
     tty.c_cc[VTIME] = 1; // Wait for up to 1 deciseconds, returning as soon as any data is received
     tty.c_cc[VMIN] = 0;
 
-    if (tcsetattr(fd, TCSANOW, &tty) != 0) {
-        perror("Error from tcsetattr");
-        return EXIT_FAILURE;
+    {
+        const int tcsetattr_ret = tcsetattr(fd, TCSANOW, &tty);
+        if (tcsetattr_ret != 0) {
+            printf("Error from tcsetattr: %d\n", tcsetattr_ret);
+            fflush(stdout);
+            return EXIT_FAILURE;
+        }
     }
 
     signal(SIGINT, int_handler);
@@ -88,7 +108,8 @@ int main() {
 
     StreamParser *parser = stream_parser_open();
     if (!parser) {
-        fprintf(stderr, "Failed to open stream parser\n");
+        printf("Failed to open stream parser\n");
+        fflush(stdout);
         return EXIT_FAILURE;
     }
     stream_parser_register_error_callback(parser, error_callback, NULL);
@@ -104,8 +125,8 @@ int main() {
                 fflush(stdout);
             }
         } else if (n < 0 && errno != EAGAIN) {
-            perror("Error reading from serial port");
-            fflush(stderr);
+            printf("Error reading from serial port\n");
+            fflush(stdout);
             break;
         }
 

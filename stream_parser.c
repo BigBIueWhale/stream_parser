@@ -76,23 +76,23 @@ static void reset_state(StreamParser *const parser) {
 }
 
 StreamParser *stream_parser_open() {
-    StreamParser *parser = calloc(1, sizeof(StreamParser));
+    StreamParser *parser = (StreamParser*)calloc(1, sizeof(StreamParser));
     if (!parser) return NULL;
 
-    parser->packet_buffer = calloc(DATA_BUFFER_SIZE, sizeof(uint8_t));
+    parser->packet_buffer = (uint8_t*)calloc(DATA_BUFFER_SIZE, sizeof(uint8_t));
     if (!parser->packet_buffer) {
         free(parser);
         return NULL;
     }
 
-    parser->error_context = calloc(ERROR_CONTEXT_SIZE, sizeof(char));
+    parser->error_context = (char*)calloc(ERROR_CONTEXT_SIZE, sizeof(char));
     if (!parser->error_context) {
         free(parser->packet_buffer);
         free(parser);
         return NULL;
     }
 
-    parser->general_use_buffer = calloc(GENERAL_USE_BUFFER_SIZE, sizeof(char)); 
+    parser->general_use_buffer = (char*)calloc(GENERAL_USE_BUFFER_SIZE, sizeof(char)); 
     if (!parser->general_use_buffer) {
         free(parser->error_context);
         free(parser->packet_buffer);
