@@ -10,23 +10,37 @@
 
 volatile sig_atomic_t keep_running = 1;
 
-void int_handler(int dummy) {
+static void int_handler(const int dummy) {
     (void)dummy;
     keep_running = 0;
 }
 
-void error_callback(StreamParserError error, const char *message, void *callback_data) {
-    (void)callback_data; // Unused parameter
+static void error_callback(const StreamParserError error, const char *message, void *const error_callback_data) {
+    (void)error_callback_data; // Unused parameter
     printf("Error [%d]: %s\n", error, message);
     fflush(stdout);
 }
 
+static void packet_callback(const uint8_t *const packet_buffer, int64_t packet_size, void *const packet_callback_data) {
+    (void)packet_callback_data; // Unused parameter
+
+    printf("Received packet with length %lld bytes and contents: [", (long long)packet_size);
+    for (int64_t i = 0; i < packet_size; ++i) {
+        printf(" 0x%02x", packet_buffer[i]);
+        if (i < packet_size - 1) {
+            printf(",");
+        }
+    }
+    printf(" ]\n");
+    fflush(stdout);
+}
+
 int main() {
-    char port[100];
+    char port[100] = { 0 };
     printf("Enter the serial port to listen on (e.g., /dev/ttyS0): ");
     scanf("%99s", port);
 
-    int fd = open(port, O_RDWR | O_NOCTTY | O_NONBLOCK);
+    const int fd = open(port, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (fd < 0) {
         perror("Error opening port");
         return EXIT_FAILURE;
@@ -77,20 +91,21 @@ int main() {
         fprintf(stderr, "Failed to open stream parser\n");
         return EXIT_FAILURE;
     }
-    stream_parser_error_callback(parser, error_callback, NULL);
+    stream_parser_register_error_callback(parser, error_callback, NULL);
+    stream_parser_register_packet_callback(parser, packet_callback, NULL);
 
-    uint8_t byte;
-    StreamParserError error;
     while (keep_running) {
-        int n = read(fd, &byte, 1);
+        uint8_t byte = 0;
+        const int n = read(fd, &byte, 1);
         if (n > 0) {
-            size_t packet_length = stream_parser_push_byte(parser, byte, &error);
-            if (packet_length > 0) {
-                printf("Received packet of length %zu\n", packet_length);
+            const StreamParserError error = stream_parser_push_byte(parser, byte);
+            if (error) {
+                printf("Error code returned by stream_parser_push_byte: %d\n", (int)error);
                 fflush(stdout);
             }
         } else if (n < 0 && errno != EAGAIN) {
             perror("Error reading from serial port");
+            fflush(stderr);
             break;
         }
 
@@ -100,5 +115,6 @@ int main() {
     stream_parser_close(parser);
     close(fd);
     printf("Exiting\n");
+    fflush(stdout);
     return EXIT_SUCCESS;
 }
