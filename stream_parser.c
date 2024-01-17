@@ -59,7 +59,7 @@ static void string_context(StreamParser *parser) {
     }
 }
 
-StreamParser *open_stream_parser() {
+StreamParser *stream_parser_open() {
     StreamParser *parser = malloc(sizeof(StreamParser));
     if (!parser) return NULL;
 
@@ -93,7 +93,7 @@ StreamParser *open_stream_parser() {
     return parser;
 }
 
-void close_stream_parser(StreamParser *parser) {
+void stream_parser_close(StreamParser *parser) {
     if (parser) {
         free(parser->general_use_buffer);
         free(parser->error_context);
@@ -105,7 +105,7 @@ void close_stream_parser(StreamParser *parser) {
 // header + trailer 4 bytes, length 2 bytes, message type 3 bytes, checksum 4 bytes.
 #define MIN_PACKET_LENGTH 13
 
-size_t push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error) {
+size_t stream_parser_push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error) {
     if (!parser || !error) {
         if (error) *error = STREAM_PARSER_INVALID_ARG;
         if (parser->error_callback) {

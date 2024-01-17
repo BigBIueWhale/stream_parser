@@ -72,7 +72,7 @@ int main() {
     signal(SIGINT, int_handler);
     signal(SIGTERM, int_handler);
 
-    StreamParser *parser = open_stream_parser();
+    StreamParser *parser = stream_parser_open();
     if (!parser) {
         fprintf(stderr, "Failed to open stream parser\n");
         return EXIT_FAILURE;
@@ -84,7 +84,7 @@ int main() {
     while (keep_running) {
         int n = read(fd, &byte, 1);
         if (n > 0) {
-            size_t packet_length = push_byte(parser, byte, &error);
+            size_t packet_length = stream_parser_push_byte(parser, byte, &error);
             if (packet_length > 0) {
                 printf("Received packet of length %zu\n", packet_length);
                 fflush(stdout);
@@ -97,7 +97,7 @@ int main() {
         usleep(10000); // Small delay to avoid busy looping
     }
 
-    close_stream_parser(parser);
+    stream_parser_close(parser);
     close(fd);
     printf("Exiting\n");
     return EXIT_SUCCESS;

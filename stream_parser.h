@@ -20,13 +20,13 @@ typedef enum {
 typedef void (*StreamParserErrorCallback)(StreamParserError error, const char *message, void *callback_data);
 
 // Function to open and initialize the parser.
-extern StreamParser *open_stream_parser();
+extern StreamParser *stream_parser_open();
 
 // Function to close and free the parser.
-extern void close_stream_parser(StreamParser *parser);
+extern void stream_parser_close(StreamParser *parser);
 
 // Function to push a byte into the parser. Returns the length of the packet if ready, or 0 if not.
-extern size_t push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error);
+extern size_t stream_parser_push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error);
 
 // Register error callback function for detailed error reporting.
 // If provided, this function will be called with a nicely formatted string describing
