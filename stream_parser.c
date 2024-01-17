@@ -148,12 +148,22 @@ StreamParserError stream_parser_push_byte(StreamParser *const parser, const uint
                 err_ret = STREAM_PARSER_HEADER_NOT_FOUND_YET;
                 if (parser->error_callback) {
                     clear_error_context(parser);
-                    snprintf(parser->general_use_buffer, GENERAL_USE_BUFFER_SIZE, "STREAM_PARSER_HEADER_NOT_FOUND_YET: Expected '/' and '*', received: %03o\n", byte);
+                    snprintf(parser->general_use_buffer, GENERAL_USE_BUFFER_SIZE, "STREAM_PARSER_HEADER_NOT_FOUND_YET: Expected '/' and '*', received: 0x%x\n", (int)byte);
                     append_to_error_context(parser, parser->general_use_buffer);
                     string_context(parser);
                     parser->error_callback(STREAM_PARSER_HEADER_NOT_FOUND_YET, parser->error_context, parser->error_callback_data);
                 }
-                parser->packet_buffer_index = 0; // Reset buffer index to start looking for header again
+                // Special case- the second byte actually turned out to be the beginning of the header
+                // This is actually quite likely since the protocl's trailer: */ can accidentally be
+                // interpreted as the beginning of the header, in which case this state machine will be
+                // stuck forever.
+                if (byte == '/') {
+                    parser->packet_buffer[0] = '/';
+                    parser->packet_buffer_index = 1;
+                }
+                else {
+                    parser->packet_buffer_index = 0; // Reset to continue searching for header
+                }
             }
             break;
         case STATE_LENGTH: {

@@ -119,6 +119,8 @@ int main(int argc, char *argv[]) {
         uint8_t byte = 0;
         const int n = read(fd, &byte, 1);
         if (n > 0) {
+            printf("Processing byte... : %c  0x%x\n", (char)byte, (int)byte);
+            fflush(stdout);
             const StreamParserError error = stream_parser_push_byte(parser, byte);
             if (error) {
                 printf("Error code returned by stream_parser_push_byte: %d\n", (int)error);
