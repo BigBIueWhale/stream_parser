@@ -2,7 +2,6 @@
 #include "crc32.h"
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 #define ERROR_CONTEXT_SIZE 4096
 #define GENERAL_USE_BUFFER_SIZE 4096
@@ -106,12 +105,6 @@ void close_stream_parser(StreamParser *parser) {
 #define MIN_PACKET_LENGTH 13
 
 size_t push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error) {
-    { // TODO: Remove me later
-        clear_error_context(parser);
-        string_context(parser);
-        parser->error_callback(STREAM_PARSER_OK, parser->error_context, parser->callback_data);
-    }
-
     if (!parser || !error) {
         if (error) *error = STREAM_PARSER_INVALID_ARG;
         if (parser->error_callback) {
