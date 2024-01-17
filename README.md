@@ -25,11 +25,6 @@ The ICD format is a structured way of encoding data packets. It consists of the 
 
 - **Trailer**: The packet ends with a trailer, indicated by `"*", "/"`.
 
-### Notes
-- The packet's `Length Bytes` include the size of the header and trailer.
-- Ensure that the packet type and body are correctly formatted as per the specifications for each packet type.
-- The CRC32 checksum helps in verifying the integrity of the packet's data.
-
 ## Compiling
 Compile with `make` command on a GNU / Linux system.
 
