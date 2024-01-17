@@ -192,7 +192,7 @@ size_t push_byte(StreamParser *parser, uint8_t byte, StreamParserError *error) {
         case STATE_CHECKSUM: {
             parser->buffer[parser->buffer_index++] = byte;
             if (parser->buffer_index == parser->packet_length - 2) { // Reached end of checksum, 2 bytes left for trailer
-                CRC32_State hash_engine = create_hash_engine();
+                CRC32_State hash_engine = crc32_create_engine();
                 // The checksum is of the entire messsage including the header and trailer
                 // except for the hash itself which isn't included in the calculation.
                 crc32_update(&hash_engine, parser->buffer, parser->packet_length - 6); // Everything before checksum
