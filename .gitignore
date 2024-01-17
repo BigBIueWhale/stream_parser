@@ -1,2 +1,5 @@
 /*.o
 /.vscode
+
+# The executable
+/stream_parser

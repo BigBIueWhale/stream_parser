@@ -2,6 +2,7 @@
 #include "crc32.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #define ERROR_CONTEXT_SIZE 4096
 #define GENERAL_USE_BUFFER_SIZE 4096
