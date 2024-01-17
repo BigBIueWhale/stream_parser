@@ -67,11 +67,11 @@ user@pop-os:~/Desktop/stream_parser$ sudo dmesg | grep tty
 [ 4017.387617] ftdi_sio ttyUSB1: FTDI USB Serial Device converter now disconnected from ttyUSB1
 [ 4133.859300] usb 3-2: FTDI USB Serial Device converter now attached to ttyUSB0
 [ 4133.868296] usb 3-2: FTDI USB Serial Device converter now attached to ttyUSB1
-user@pop-os:~/Desktop/stream_parser$ sudo ./stream_parser
-Enter the serial port to listen on (e.g., /dev/ttyS0): ttyUSB0              
-Error opening port: No such file or directory
-user@pop-os:~/Desktop/stream_parser$ sudo ./stream_parser
-Enter the serial port to listen on (e.g., /dev/ttyS0): /dev/ttyUSB0
+user@pop-os:~/Desktop/stream_parser$ ./stream_parser
+Error: Please specify the serial port using the --port argument.
+Usage: program_name --port <port_name>
+user@pop-os:~/Desktop/stream_parser$ ./stream_parser --port /dev/ttyUSB0
+Listening on serial port: /dev/ttyUSB0
 Error [4]: STREAM_PARSER_INVALID_PACKET: Invalid packet length: 0
 State: 1, Buffer Index: 4, Packet Length: 0, Buffer Content: 2F 2A 00 00 
 Error [3]: STREAM_PARSER_HEADER_NOT_FOUND_YET: Expected '/' and '*', received: 122
